@@ -8,6 +8,8 @@ primary_region = 'cdg'
 [env]
   PORT = "3000"
   NODE_ENV = "production"
+  # RECIPIENT_WALLET, CDP_API_KEY_ID, CDP_API_KEY_SECRET are set via
+  # `fly secrets set` — never committed here.
 
 [http_service]
   internal_port = 3000

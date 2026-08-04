@@ -34,7 +34,9 @@ const isProduction = NODE_ENV === "production";
 
 // The wallet that receives x402 USDC micropayments. Required in production;
 // in development we fall back to a well-known Base testnet burn-style
-// address so `npm run dev` works out of the box without an .env file.
+// address so `npm run dev` boots without an .env file (though CDP
+// credentials below are still required either way — the resource server
+// authenticates against the real CDP facilitator regardless of environment).
 const RECIPIENT_WALLET = requireEnv(
   "RECIPIENT_WALLET",
   isProduction ? undefined : "0x000000000000000000000000000000000000dEaD",
@@ -46,19 +48,30 @@ if (!/^0x[a-fA-F0-9]{40}$/.test(RECIPIENT_WALLET)) {
   );
 }
 
+// CDP facilitator credentials. No safe dev fallback exists here — unlike
+// the rest of this config, there is no harmless placeholder that lets the
+// resource server boot without real auth, because `resourceServer.initialize()`
+// makes a real authenticated call to CDP on startup regardless of NODE_ENV.
+const CDP_API_KEY_ID = requireEnv("CDP_API_KEY_ID");
+const CDP_API_KEY_SECRET = requireEnv("CDP_API_KEY_SECRET");
+
 export const config = {
   nodeEnv: NODE_ENV,
   isProduction,
   port: optionalIntEnv("PORT", 3000),
 
-  /** Wallet (Base L2) that receives USDC micropayments via x402. */
+  /** Wallet (Base L2) that receives USDC micropayments via x402. Never custodied by CDP. */
   recipientWallet: RECIPIENT_WALLET,
+
+  /** CDP (Coinbase Developer Platform) API credentials, for the hosted x402 facilitator. */
+  cdpApiKeyId: CDP_API_KEY_ID,
+  cdpApiKeySecret: CDP_API_KEY_SECRET,
+
+  /** CAIP-2 network identifier for Base mainnet. */
+  x402Network: "eip155:8453",
 
   /** Native USDC on Base mainnet — Circle-issued FiatTokenProxy. */
   usdcAssetAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-
-  /** x402 network identifier for Base mainnet. */
-  x402Network: "base",
 
   /** Price per `verify_package` call once the free tier is exhausted, in atomic USDC units (6 decimals). */
   priceAtomicUsdc: optionalIntEnv("PRICE_ATOMIC_USDC", 3_000), // 3000 / 1e6 = $0.003
@@ -87,20 +100,4 @@ export const config = {
 
   /** Max Levenshtein distance to a popular package name that still counts as a typosquat signal. */
   typosquatMaxDistance: optionalIntEnv("TYPOSQUAT_MAX_DISTANCE", 2),
-
-  /**
-   * Base mainnet JSON-RPC endpoint used to verify x402 payments on-chain.
-   * The public endpoint has no auth and is fine for low/medium volume, but
-   * carries no uptime guarantee — swap in a dedicated provider (Alchemy,
-   * Infura, QuickNode) once real traffic depends on this.
-   */
-  baseRpcUrl: process.env.BASE_RPC_URL?.trim() || "https://mainnet.base.org",
-
-  /**
-   * How old (seconds) a settled payment transaction may be and still be
-   * accepted as proof for the *current* call. Bounds the replay window to
-   * "recent enough to plausibly be this payment" rather than accepting any
-   * USDC transfer to the wallet ever made.
-   */
-  paymentMaxAgeSeconds: optionalIntEnv("PAYMENT_MAX_AGE_SECONDS", 600),
 } as const;

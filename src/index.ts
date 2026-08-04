@@ -2,7 +2,6 @@ import express from "express";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { config } from "./config.js";
 import { buildMcpServer } from "./mcpServer.js";
-import { x402PaymentGate } from "./middleware/payment.js";
 
 /**
  * Handles one Streamable HTTP request end-to-end with a brand-new
@@ -51,9 +50,11 @@ async function main(): Promise<void> {
     });
   });
 
-  // Tool invocation goes through the x402 payment gate; everything else
-  // (health checks) stays free.
-  app.post("/mcp", x402PaymentGate, (req, res) => {
+  // Payment gating now happens per-tool inside mcpServer.ts (via
+  // @x402/mcp's createPaymentWrapper on verify_package specifically),
+  // not at this HTTP layer — so protocol-level calls like `initialize`
+  // and `tools/list` are never charged, only the paid tool itself is.
+  app.post("/mcp", (req, res) => {
     void handleMcpRequest(req, res, req.body);
   });
 
