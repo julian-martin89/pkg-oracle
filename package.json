@@ -1,0 +1,46 @@
+{
+  "name": "pkg-oracle",
+  "version": "1.0.0",
+  "description": "Dependency Trust Oracle — a pay-per-call MCP server that verifies npm/PyPI packages before an AI coding agent installs them. Monetized with x402 micropayments (USDC on Base).",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "x402",
+    "usdc",
+    "base",
+    "supply-chain-security",
+    "slopsquatting",
+    "typosquatting",
+    "npm",
+    "pypi"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "fast-levenshtein": "^3.0.0",
+    "lru-cache": "^11.0.2",
+    "viem": "^2.55.10",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/fast-levenshtein": "^0.0.4",
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,36 @@
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+
+app = 'mcp-snowy-dew-9447'
+primary_region = 'cdg'
+
+[build]
+
+[env]
+  PORT = "3000"
+  NODE_ENV = "production"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  # Keep at least one machine warm: a cold start adds latency to the very
+  # first paid call an agent makes, which is exactly the call you don't
+  # want to fumble. `fly launch` reset this to 0 — deliberately restored.
+  min_machines_running = 1
+  processes = ['app']
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"
+
+[[vm]]
+  # `fly launch` bumped this to 1gb by default — restored to 256mb, which
+  # is what this stateless Express app actually needs. Revisit only if
+  # real traffic shows memory pressure.
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1
