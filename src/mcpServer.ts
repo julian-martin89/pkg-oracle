@@ -41,7 +41,19 @@ const verifyPackageAccepts = await resourceServer.buildPaymentRequirements({
   // like "3000" is parsed as *Money* ($3000), not atomic units, by the
   // scheme's price parser. This is the exact bug a live test caught:
   // requesting $3000 instead of $0.003. Atomic units in, atomic units out.
-  price: { asset: config.usdcAssetAddress, amount: String(config.priceAtomicUsdc) },
+  //
+  // `extra` (EIP-712 domain name/version) has to be supplied by hand here
+  // too — the Money-parsing path auto-fills it while resolving the
+  // network's default stablecoin, but that path is exactly what passing
+  // an explicit AssetAmount bypasses. Without it, a real client can't
+  // construct a valid signature at all ("EIP-712 domain parameters
+  // (name, version) are required..."), a bug only a real signing attempt
+  // catches — every prior curl-based test only checked `amount`.
+  price: {
+    asset: config.usdcAssetAddress,
+    amount: String(config.priceAtomicUsdc),
+    extra: { name: "USD Coin", version: "2" },
+  },
   maxTimeoutSeconds: 60,
 });
 
