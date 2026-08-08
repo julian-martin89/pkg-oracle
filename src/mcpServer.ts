@@ -1,59 +1,24 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { LRUCache } from "lru-cache";
-import { createCdpFacilitatorClient } from "@coinbase/cdp-sdk/x402";
-import { x402ResourceServer, createPaymentWrapper, type MCPToolContext, type ToolResult } from "@x402/mcp";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
-import { bazaarResourceServerExtension, declareDiscoveryExtension } from "@x402/extensions/bazaar";
+import { createPaymentWrapper, type MCPToolContext, type ToolResult } from "@x402/mcp";
+import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { verifyPackage } from "./services/oracle.js";
+import { resourceServer, verifyPackagePrice } from "./services/x402.js";
 import { config } from "./config.js";
 import type { Ecosystem } from "./types.js";
 
 /**
- * x402 payment wiring for `verify_package`, set up once at module load
- * (not per-request — `resourceServer.initialize()` and
- * `buildPaymentRequirements()` are network calls to the CDP facilitator,
- * far too expensive to repeat on every HTTP request). Startup blocks on
- * this: if the facilitator is unreachable or credentials are wrong, the
- * server fails loudly at boot instead of accepting unpayable traffic.
- *
- * Settling through the CDP facilitator (rather than a generic one) is
- * also what makes this tool auto-discoverable in the x402 Bazaar — see
- * the `bazaarResourceServerExtension` registration and the
- * `declareDiscoveryExtension` call below.
+ * x402 payment wiring for `verify_package`, set up once at module load. The
+ * shared resource server (facilitator + Bazaar extension, already
+ * initialized) lives in services/x402.ts; here we just build this tool's
+ * payment requirements and wrap its handler.
  */
-const facilitatorClient = createCdpFacilitatorClient({
-  apiKeyId: config.cdpApiKeyId,
-  apiKeySecret: config.cdpApiKeySecret,
-});
-
-const resourceServer = new x402ResourceServer(facilitatorClient)
-  .register(config.x402Network, new ExactEvmScheme())
-  .registerExtension(bazaarResourceServerExtension);
-
-await resourceServer.initialize();
-
 const verifyPackageAccepts = await resourceServer.buildPaymentRequirements({
   scheme: "exact",
   network: config.x402Network,
   payTo: config.recipientWallet,
-  // An explicit AssetAmount, not a bare numeric string — a plain string
-  // like "3000" is parsed as *Money* ($3000), not atomic units, by the
-  // scheme's price parser. This is the exact bug a live test caught:
-  // requesting $3000 instead of $0.003. Atomic units in, atomic units out.
-  //
-  // `extra` (EIP-712 domain name/version) has to be supplied by hand here
-  // too — the Money-parsing path auto-fills it while resolving the
-  // network's default stablecoin, but that path is exactly what passing
-  // an explicit AssetAmount bypasses. Without it, a real client can't
-  // construct a valid signature at all ("EIP-712 domain parameters
-  // (name, version) are required..."), a bug only a real signing attempt
-  // catches — every prior curl-based test only checked `amount`.
-  price: {
-    asset: config.usdcAssetAddress,
-    amount: String(config.priceAtomicUsdc),
-    extra: { name: "USD Coin", version: "2" },
-  },
+  price: verifyPackagePrice,
   maxTimeoutSeconds: 60,
 });
 
@@ -100,6 +65,10 @@ async function rawVerifyPackageHandler(
 const paidVerifyPackageHandler = createPaymentWrapper(resourceServer, {
   accepts: verifyPackageAccepts,
   resource: {
+    // Explicit — the default is `mcp://tool/{toolName}`, but the wrapper
+    // doesn't know which tool name it'll be attached to, so it falls back
+    // to a generic "paid_tool" placeholder if we don't set this.
+    url: "mcp://tool/verify_package",
     description: "Dependency trust check for AI coding agents — npm/PyPI typosquat, CVE, and scorecard verdicts.",
     serviceName: "pkg-oracle",
     tags: ["security", "supply-chain", "npm", "pypi", "typosquatting"],
