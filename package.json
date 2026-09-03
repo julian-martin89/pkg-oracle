@@ -23,6 +23,8 @@
     "supply-chain-security",
     "slopsquatting",
     "typosquatting",
+    "package-verification",
+    "dependency-security",
     "npm",
     "pypi"
   ],

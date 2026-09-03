@@ -2,20 +2,12 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.julian-martin89/pkg-oracle",
   "title": "pkg-oracle — Dependency Trust Oracle",
-  "description": "Pay-per-call dependency trust oracle: verifies npm/PyPI packages before an AI agent installs them.",
+  "description": "Blocks typosquatted or hallucinated npm/PyPI packages before an AI agent installs them.",
   "version": "1.0.0",
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://mcp-snowy-dew-9447.fly.dev/mcp",
-      "headers": [
-        {
-          "name": "X-PAYMENT-PROOF",
-          "description": "Base mainnet transaction hash proving a settled USDC payment, required once the free tier (5 calls) is spent. Omit it and the server responds 402 with the x402 payment descriptor telling you where and how much to pay.",
-          "isRequired": false,
-          "isSecret": false
-        }
-      ]
+      "url": "https://mcp-snowy-dew-9447.fly.dev/mcp"
     }
   ]
 }

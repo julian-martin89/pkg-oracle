@@ -31,6 +31,53 @@ It returns one synthetic verdict an agent can act on without reasoning
 about four different data sources itself: **ALLOW**, **WARN**, or
 **BLOCK**.
 
+## Frequently asked questions
+
+### How do I check if an npm package is safe before installing it?
+
+Call the `verify_package` MCP tool with the package name and ecosystem
+(`npm` or `pypi`). One call confirms the package actually exists, checks
+[OSV.dev](https://osv.dev) for known CVEs, pulls its OpenSSF Scorecard,
+and flags typosquat-style name similarity to popular packages. It
+returns a single verdict — `ALLOW`, `WARN`, or `BLOCK` — instead of four
+separate reports to reason about.
+
+### What is slopsquatting?
+
+Slopsquatting is a supply-chain attack that exploits LLMs hallucinating
+plausible-but-nonexistent package names. Attackers register those exact
+names in advance; when a coding agent installs the "hallucinated"
+package without checking, it actually installs the attacker's package.
+pkg-oracle catches this by confirming the name is real, on the actual
+registry, before anything gets installed.
+
+### How do coding agents avoid installing a malicious or hallucinated package?
+
+By calling `verify_package` before writing the dependency into a
+manifest (`package.json`, `requirements.txt`, `pyproject.toml`). If the
+name doesn't exist on the registry at all, or is a recent near-miss of a
+popular package, the verdict is `BLOCK` — the strongest available signal
+of hallucination or typosquatting.
+
+### Is there an MCP server for verifying npm or PyPI packages?
+
+Yes — pkg-oracle. It's a remote MCP server over Streamable HTTP: no
+local install, no API key, no signup. Point any MCP client at
+`https://mcp-snowy-dew-9447.fly.dev/mcp`.
+
+### How much does it cost to verify a package?
+
+The first 5 calls per wallet/IP are free. After that, $0.003 USDC per
+call, paid via the [x402](https://x402.gitbook.io/x402/) protocol on
+Base — no subscription, no API key, no dashboard.
+
+### Does it work with Claude Desktop, Cursor, or Claude Code?
+
+Yes, for the free tier — any Streamable-HTTP-compatible MCP client can
+connect (see [Client configuration](#client-configuration) below).
+Paying past the free tier needs an x402-aware client, since neither
+Claude Desktop nor Cursor ships a built-in x402 signer yet.
+
 ## Architecture
 
 ```
