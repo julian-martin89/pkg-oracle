@@ -1,6 +1,6 @@
 {
   "name": "pkg-oracle",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Dependency Trust Oracle — a pay-per-call MCP server that verifies npm/PyPI packages before an AI coding agent installs them. Monetized with x402 micropayments (USDC on Base).",
   "type": "module",
   "license": "MIT",

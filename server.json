@@ -3,7 +3,7 @@
   "name": "io.github.julian-martin89/pkg-oracle",
   "title": "pkg-oracle — Dependency Trust Oracle",
   "description": "Blocks typosquatted or hallucinated npm/PyPI packages before an AI agent installs them.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "remotes": [
     {
       "type": "streamable-http",
