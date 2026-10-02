@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { paymentMiddleware } from "@x402/express";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
-import { resourceServer, verifyPackagePrice } from "./services/x402.js";
+import { resourceServer, verifyPackagePrice, verifyPackagePriceSolana, SOLANA_NETWORK } from "./services/x402.js";
 import { verifyPackage } from "./services/oracle.js";
 import { config } from "./config.js";
 import type { Ecosystem } from "./types.js";
@@ -23,13 +23,26 @@ import type { Ecosystem } from "./types.js";
  */
 const routes = {
   "POST /verify": {
-    accepts: {
-      scheme: "exact",
-      network: config.x402Network,
-      payTo: config.recipientWallet,
-      price: verifyPackagePrice,
-      maxTimeoutSeconds: 60,
-    },
+    accepts: [
+      {
+        scheme: "exact",
+        network: config.x402Network,
+        payTo: config.recipientWallet,
+        price: verifyPackagePrice,
+        maxTimeoutSeconds: 60,
+      },
+      ...(config.solanaRecipientWallet
+        ? [
+            {
+              scheme: "exact",
+              network: SOLANA_NETWORK,
+              payTo: config.solanaRecipientWallet,
+              price: verifyPackagePriceSolana,
+              maxTimeoutSeconds: 60,
+            },
+          ]
+        : []),
+    ],
     description:
       "Verify an npm/PyPI package before installing it: existence, known CVEs (OSV.dev), OpenSSF Scorecard, and typosquat/slopsquat similarity. Returns an ALLOW/WARN/BLOCK verdict.",
     serviceName: "pkg-oracle",

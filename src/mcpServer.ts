@@ -4,7 +4,7 @@ import { LRUCache } from "lru-cache";
 import { createPaymentWrapper, type MCPToolContext, type ToolResult } from "@x402/mcp";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { verifyPackage } from "./services/oracle.js";
-import { resourceServer, verifyPackagePrice } from "./services/x402.js";
+import { resourceServer, verifyPackagePrice, verifyPackagePriceSolana, SOLANA_NETWORK } from "./services/x402.js";
 import { config } from "./config.js";
 import type { Ecosystem } from "./types.js";
 
@@ -14,13 +14,27 @@ import type { Ecosystem } from "./types.js";
  * initialized) lives in services/x402.ts; here we just build this tool's
  * payment requirements and wrap its handler.
  */
-const verifyPackageAccepts = await resourceServer.buildPaymentRequirements({
+const baseAccepts = await resourceServer.buildPaymentRequirements({
   scheme: "exact",
   network: config.x402Network,
   payTo: config.recipientWallet,
   price: verifyPackagePrice,
   maxTimeoutSeconds: 60,
 });
+
+const solanaAccepts = config.solanaRecipientWallet
+  ? await resourceServer.buildPaymentRequirements({
+      scheme: "exact",
+      network: SOLANA_NETWORK,
+      payTo: config.solanaRecipientWallet,
+      price: verifyPackagePriceSolana,
+      maxTimeoutSeconds: 60,
+    })
+  : [];
+
+// Both entries offered side by side — an x402 client picks whichever
+// network it can actually pay on (defaults to accepts[0], Base, if both work).
+const verifyPackageAccepts = [...baseAccepts, ...solanaAccepts];
 
 /**
  * The actual dependency-trust-oracle logic, shape-compatible with both the

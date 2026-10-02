@@ -245,6 +245,18 @@ is also what makes `verify_package` auto-discoverable in the
 `mcpServer.ts` get indexed automatically the first time a real payment
 settles — there's no separate registration step.
 
+### Multi-network: Base + Solana
+
+Set `SOLANA_RECIPIENT_WALLET` (see [`.env.example`](.env.example)) to
+accept payment on Solana mainnet too — every x402 challenge then offers
+both networks side by side (`accepts` becomes a two-entry array), and a
+caller pays with whichever one its wallet actually holds USDC on.
+Unset by default: without it, only Base is offered, exactly as before
+this existed. The Solana side is handled entirely by
+[`@x402/svm`](https://www.npmjs.com/package/@x402/svm)'s `ExactSvmScheme`
+and CDP's facilitator — this server never holds a Solana keypair, same
+custody model as Base (see above).
+
 ## Client configuration
 
 `pkg-oracle` speaks MCP over Streamable HTTP, so any MCP-compatible client

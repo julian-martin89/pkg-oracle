@@ -1,8 +1,13 @@
 import { createCdpFacilitatorClient } from "@coinbase/cdp-sdk/x402";
 import { x402ResourceServer } from "@x402/core/server";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { ExactSvmScheme } from "@x402/svm/exact/server";
+import { SOLANA_MAINNET_CAIP2, USDC_MAINNET_ADDRESS as SOLANA_USDC_MAINNET_ADDRESS } from "@x402/svm";
 import { bazaarResourceServerExtension } from "@x402/extensions/bazaar";
 import { config } from "../config.js";
+
+/** CAIP-2 identifier for Solana mainnet-beta, re-exported so callers don't need to import @x402/svm directly. */
+export const SOLANA_NETWORK = SOLANA_MAINNET_CAIP2 as `${string}:${string}`;
 
 /**
  * The single shared x402 resource server, wired to CDP's hosted facilitator
@@ -20,9 +25,15 @@ const facilitatorClient = createCdpFacilitatorClient({
   apiKeySecret: config.cdpApiKeySecret,
 });
 
-export const resourceServer = new x402ResourceServer(facilitatorClient)
-  .register(config.x402Network, new ExactEvmScheme())
-  .registerExtension(bazaarResourceServerExtension);
+let builder = new x402ResourceServer(facilitatorClient).register(config.x402Network, new ExactEvmScheme());
+
+// Solana is additive and opt-in via SOLANA_RECIPIENT_WALLET — registering it
+// unconditionally would offer a network we have nowhere to settle funds to.
+if (config.solanaRecipientWallet) {
+  builder = builder.register(SOLANA_NETWORK, new ExactSvmScheme());
+}
+
+export const resourceServer = builder.registerExtension(bazaarResourceServerExtension);
 
 await resourceServer.initialize();
 
@@ -42,4 +53,15 @@ export const verifyPackagePrice = {
   asset: config.usdcAssetAddress,
   amount: String(config.priceAtomicUsdc),
   extra: { name: "USD Coin", version: "2" },
+} as const;
+
+/**
+ * Same price on Solana — USDC is 6-decimal on both chains, so the atomic
+ * amount is identical. No `extra` domain fields needed here: unlike EIP-712
+ * on EVM, ExactSvmScheme fills in what it needs (fee payer, blockhash)
+ * itself via `enhancePaymentRequirements`.
+ */
+export const verifyPackagePriceSolana = {
+  asset: SOLANA_USDC_MAINNET_ADDRESS,
+  amount: String(config.priceAtomicUsdc),
 } as const;

@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { validateSvmAddress } from "@x402/svm";
 
 /**
  * Centralized, validated environment configuration for pkg-oracle.
@@ -48,6 +49,20 @@ if (!/^0x[a-fA-F0-9]{40}$/.test(RECIPIENT_WALLET)) {
   );
 }
 
+// Optional second settlement network. When unset, pkg-oracle only offers
+// payment on Base — same behavior as before this existed. When set, it's
+// added as a second `accepts` entry alongside Base, so a caller can pay
+// with whichever network its wallet actually holds USDC on.
+const SOLANA_RECIPIENT_WALLET_RAW = process.env.SOLANA_RECIPIENT_WALLET?.trim();
+const SOLANA_RECIPIENT_WALLET =
+  SOLANA_RECIPIENT_WALLET_RAW && SOLANA_RECIPIENT_WALLET_RAW.length > 0 ? SOLANA_RECIPIENT_WALLET_RAW : undefined;
+
+if (SOLANA_RECIPIENT_WALLET && !validateSvmAddress(SOLANA_RECIPIENT_WALLET)) {
+  throw new Error(
+    `[config] SOLANA_RECIPIENT_WALLET must be a valid base58 Solana address, got: "${SOLANA_RECIPIENT_WALLET}"`,
+  );
+}
+
 // CDP facilitator credentials. No safe dev fallback exists here — unlike
 // the rest of this config, there is no harmless placeholder that lets the
 // resource server boot without real auth, because `resourceServer.initialize()`
@@ -62,6 +77,9 @@ export const config = {
 
   /** Wallet (Base L2) that receives USDC micropayments via x402. Never custodied by CDP. */
   recipientWallet: RECIPIENT_WALLET,
+
+  /** Optional Solana wallet that receives USDC via x402 on Solana mainnet. Unset = Solana not offered. */
+  solanaRecipientWallet: SOLANA_RECIPIENT_WALLET,
 
   /** CDP (Coinbase Developer Platform) API credentials, for the hosted x402 facilitator. */
   cdpApiKeyId: CDP_API_KEY_ID,
