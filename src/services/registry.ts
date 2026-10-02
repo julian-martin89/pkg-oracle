@@ -121,10 +121,67 @@ async function fetchPypi(name: string, version: string | null): Promise<Registry
   }
 }
 
+interface CratesIoVersion {
+  num: string;
+  created_at?: string;
+  license?: string | null;
+}
+
+interface CratesIoDoc {
+  crate?: {
+    created_at?: string;
+    updated_at?: string;
+    max_stable_version?: string;
+    max_version?: string;
+  };
+  versions?: CratesIoVersion[];
+}
+
+/**
+ * crates.io requires a descriptive, non-browser User-Agent on every request
+ * (undocumented-but-enforced policy — a generic/missing one gets rate-limited
+ * or blocked) and has no abbreviated-metadata endpoint, so this fetches the
+ * full crate document in one call.
+ */
+async function fetchCratesIo(name: string, version: string | null): Promise<RegistryInfo> {
+  try {
+    const { data } = await http.get<CratesIoDoc>(
+      `https://crates.io/api/v1/crates/${encodeURIComponent(name)}`,
+      { headers: { "User-Agent": "pkg-oracle (https://github.com/julian-martin89/pkg-oracle)" } },
+    );
+
+    const created = data.crate?.created_at ?? null;
+    const now = new Date().toISOString();
+    const versions = data.versions ?? [];
+    const matchedVersion = version ? versions.find((v) => v.num === version) : undefined;
+
+    return {
+      exists: true,
+      firstPublishedAt: created,
+      lastPublishedAt: data.crate?.updated_at ?? null,
+      ageDays: created ? daysBetween(created, now) : null,
+      requestedVersionExists: version ? Boolean(matchedVersion) : null,
+      latestVersion: data.crate?.max_stable_version ?? data.crate?.max_version ?? null,
+      // crates.io exposes owners via a separate /owners endpoint, not the
+      // crate document itself — not worth a second round-trip for this one
+      // enrichment field (PyPI, below, makes the same trade-off).
+      maintainerCount: null,
+      license: matchedVersion?.license ?? versions[0]?.license ?? null,
+    };
+  } catch (err) {
+    if (err instanceof AxiosError && err.response?.status === 404) {
+      return notFoundResult();
+    }
+    throw new Error(`crates.io registry lookup failed for "${name}": ${(err as Error).message}`);
+  }
+}
+
 export async function fetchRegistryInfo(
   ecosystem: Ecosystem,
   name: string,
   version: string | null,
 ): Promise<RegistryInfo> {
-  return ecosystem === "npm" ? fetchNpm(name, version) : fetchPypi(name, version);
+  if (ecosystem === "npm") return fetchNpm(name, version);
+  if (ecosystem === "crates.io") return fetchCratesIo(name, version);
+  return fetchPypi(name, version);
 }

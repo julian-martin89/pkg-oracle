@@ -8,6 +8,7 @@ const http = axios.create({ timeout: config.upstreamTimeoutMs });
 const OSV_ECOSYSTEM: Record<Ecosystem, string> = {
   npm: "npm",
   pypi: "PyPI",
+  "crates.io": "crates.io",
 };
 
 const SEVERITY_RANK: Record<SeverityLevel, number> = {

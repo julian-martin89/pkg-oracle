@@ -1,5 +1,7 @@
+import type { Ecosystem } from "../types.js";
+
 /**
- * Curated shortlist of the npm and PyPI packages most worth impersonating.
+ * Curated shortlist of the npm, PyPI, and crates.io packages most worth impersonating.
  *
  * Honest scope note: this is not a live top-1000-by-download-count feed —
  * fetching and re-ranking that from the npm/PyPI download-count APIs on
@@ -112,14 +114,51 @@ export const POPULAR_PYPI_PACKAGES: readonly string[] = [
   "docker", "kubernetes", "paramiko", "fabric", "invoke",
 ] as const;
 
+export const POPULAR_CRATES: readonly string[] = [
+  "serde", "serde_json", "serde_yaml", "tokio", "tokio-util", "tokio-stream",
+  "clap", "clap_derive", "structopt", "rand", "rand_core", "getrandom",
+  "regex", "regex-syntax", "reqwest", "hyper", "hyper-util", "http", "url",
+  "actix-web", "actix-rt", "axum", "warp", "rocket", "tower", "tower-http",
+  "diesel", "sqlx", "sea-orm", "rusqlite", "postgres", "mongodb",
+  "anyhow", "thiserror", "eyre", "color-eyre",
+  "log", "env_logger", "tracing", "tracing-subscriber", "tracing-futures",
+  "futures", "futures-util", "futures-core", "async-trait", "async-std",
+  "syn", "quote", "proc-macro2", "itertools", "either",
+  "chrono", "time", "uuid", "base64", "hex", "sha2", "md5", "blake3",
+  "bytes", "crossbeam", "crossbeam-channel", "rayon", "once_cell",
+  "lazy_static", "parking_lot", "dashmap", "indexmap", "bitflags",
+  "num", "num-traits", "num-derive", "nom", "pest", "lalrpop",
+  "winit", "wgpu", "bevy", "glium", "ggez",
+  "cookie", "jsonwebtoken", "ring", "rustls", "rustls-pemfile", "openssl",
+  "native-tls", "tungstenite", "tokio-tungstenite", "prost", "tonic",
+  "config", "dotenv", "dotenvy", "toml", "csv", "walkdir", "glob",
+  "tempfile", "assert_cmd", "criterion", "proptest", "mockall",
+  "wasm-bindgen", "js-sys", "web-sys", "libc", "cc", "bindgen", "cbindgen",
+  "byteorder", "memchr", "aho-corasick", "unicode-segmentation",
+  "smallvec", "arrayvec", "slab", "petgraph", "image", "plotters",
+  "clippy", "rustfmt", "cargo-edit", "cargo-watch",
+] as const;
+
 const npmSet = new Set<string>(POPULAR_NPM_PACKAGES.map((p) => p.toLowerCase()));
 const pypiSet = new Set<string>(POPULAR_PYPI_PACKAGES.map((p) => p.toLowerCase()));
+const cratesSet = new Set<string>(POPULAR_CRATES.map((p) => p.toLowerCase()));
 
-export function isKnownPopular(ecosystem: "npm" | "pypi", name: string): boolean {
-  const lower = name.toLowerCase();
-  return ecosystem === "npm" ? npmSet.has(lower) : pypiSet.has(lower);
+function listFor(ecosystem: Ecosystem): readonly string[] {
+  if (ecosystem === "npm") return POPULAR_NPM_PACKAGES;
+  if (ecosystem === "crates.io") return POPULAR_CRATES;
+  return POPULAR_PYPI_PACKAGES;
 }
 
-export function getPopularList(ecosystem: "npm" | "pypi"): readonly string[] {
-  return ecosystem === "npm" ? POPULAR_NPM_PACKAGES : POPULAR_PYPI_PACKAGES;
+function setFor(ecosystem: Ecosystem): ReadonlySet<string> {
+  if (ecosystem === "npm") return npmSet;
+  if (ecosystem === "crates.io") return cratesSet;
+  return pypiSet;
+}
+
+export function isKnownPopular(ecosystem: Ecosystem, name: string): boolean {
+  return setFor(ecosystem).has(name.toLowerCase());
+}
+
+export function getPopularList(ecosystem: Ecosystem): readonly string[] {
+  return listFor(ecosystem);
 }

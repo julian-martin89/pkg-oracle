@@ -1,5 +1,5 @@
 /** Ecosystems the oracle currently understands. */
-export type Ecosystem = "npm" | "pypi";
+export type Ecosystem = "npm" | "pypi" | "crates.io";
 
 /** Final synthetic verdict handed back to the calling agent. */
 export type Verdict = "ALLOW" | "WARN" | "BLOCK";

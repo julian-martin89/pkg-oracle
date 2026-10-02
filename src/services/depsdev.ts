@@ -7,6 +7,7 @@ const http = axios.create({ timeout: config.upstreamTimeoutMs });
 const DEPS_DEV_SYSTEM: Record<Ecosystem, string> = {
   npm: "npm",
   pypi: "pypi",
+  "crates.io": "CARGO",
 };
 
 interface DepsDevRelatedProject {

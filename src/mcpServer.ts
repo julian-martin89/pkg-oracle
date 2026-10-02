@@ -83,17 +83,31 @@ const paidVerifyPackageHandler = createPaymentWrapper(resourceServer, {
     // doesn't know which tool name it'll be attached to, so it falls back
     // to a generic "paid_tool" placeholder if we don't set this.
     url: "mcp://tool/verify_package",
-    description: "Dependency trust check for AI coding agents — npm/PyPI typosquat, CVE, and scorecard verdicts.",
+    description:
+      "Checks whether an npm, PyPI, or crates.io package is safe to install: flags malicious or " +
+      "typosquatted/slopsquatted names, known CVEs, and weak OpenSSF Scorecards.",
     serviceName: "pkg-oracle",
-    tags: ["security", "supply-chain", "npm", "pypi", "typosquatting"],
+    tags: [
+      "security",
+      "supply-chain",
+      "npm",
+      "pypi",
+      "crates.io",
+      "rust",
+      "typosquatting",
+      "slopsquatting",
+      "malicious-package",
+      "install-preflight",
+    ],
   },
   extensions: declareDiscoveryExtension({
     toolName: "verify_package",
-    description: "Verify an npm/PyPI package for typosquatting, known CVEs, and OpenSSF Scorecard before installing it.",
+    description:
+      "Verify an npm, PyPI, or crates.io package for typosquatting, known CVEs, and OpenSSF Scorecard before installing it.",
     inputSchema: {
       type: "object",
       properties: {
-        ecosystem: { type: "string", enum: ["npm", "pypi"] },
+        ecosystem: { type: "string", enum: ["npm", "pypi", "crates.io"] },
         name: { type: "string" },
         version: { type: "string" },
       },
@@ -207,7 +221,7 @@ export function buildMcpServer(): McpServer {
       title: "Verify Package",
       description:
         "Dependency Trust Oracle. Call this BEFORE writing any package into a manifest " +
-        "(package.json, requirements.txt, pyproject.toml, ...). It checks whether the " +
+        "(package.json, requirements.txt, pyproject.toml, Cargo.toml, ...). It checks whether the " +
         "package actually exists on its registry, cross-references OSV.dev for known " +
         "CVEs, pulls the package's OpenSSF Scorecard via deps.dev, and runs a " +
         "Levenshtein-distance typosquat/slopsquat check against a curated list of " +
@@ -222,7 +236,7 @@ export function buildMcpServer(): McpServer {
         "with the amount and address to pay.",
       inputSchema: {
         ecosystem: z
-          .enum(["npm", "pypi"])
+          .enum(["npm", "pypi", "crates.io"])
           .describe("Package registry to check the name against."),
         name: z
           .string()

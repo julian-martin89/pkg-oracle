@@ -43,10 +43,27 @@ const routes = {
           ]
         : []),
     ],
+    // Description/tags tuned against real queries run through CDP's live
+    // discovery search (`GET /v2/x402/discovery/search?query=...`) rather
+    // than guessed — "malicious package", "install preflight" etc. are
+    // phrasings that returned *other* services but not us before this.
     description:
-      "Verify an npm/PyPI package before installing it: existence, known CVEs (OSV.dev), OpenSSF Scorecard, and typosquat/slopsquat similarity. Returns an ALLOW/WARN/BLOCK verdict.",
+      "Checks whether an npm, PyPI, or crates.io package is safe to install: confirms it exists, flags " +
+      "malicious or typosquatted/slopsquatted names, checks known CVEs (OSV.dev), and pulls its OpenSSF " +
+      "Scorecard. Returns an ALLOW/WARN/BLOCK verdict before your agent installs it.",
     serviceName: "pkg-oracle",
-    tags: ["security", "supply-chain", "npm", "pypi", "typosquatting"],
+    tags: [
+      "security",
+      "supply-chain",
+      "npm",
+      "pypi",
+      "crates.io",
+      "rust",
+      "typosquatting",
+      "slopsquatting",
+      "malicious-package",
+      "install-preflight",
+    ],
     extensions: {
       // HTTP variant of the Bazaar discovery declaration (method inferred
       // from the "POST /verify" route key, so it's omitted here).
@@ -54,7 +71,7 @@ const routes = {
         input: { ecosystem: "npm", name: "express" },
         inputSchema: {
           properties: {
-            ecosystem: { type: "string", enum: ["npm", "pypi"] },
+            ecosystem: { type: "string", enum: ["npm", "pypi", "crates.io"] },
             name: { type: "string" },
             version: { type: "string" },
           },
@@ -84,8 +101,8 @@ export async function handleHttpVerify(req: Request, res: Response): Promise<voi
   const body = (req.body ?? {}) as { ecosystem?: unknown; name?: unknown; version?: unknown };
   const { ecosystem, name, version } = body;
 
-  if (ecosystem !== "npm" && ecosystem !== "pypi") {
-    res.status(400).json({ error: "'ecosystem' must be 'npm' or 'pypi'." });
+  if (ecosystem !== "npm" && ecosystem !== "pypi" && ecosystem !== "crates.io") {
+    res.status(400).json({ error: "'ecosystem' must be 'npm', 'pypi', or 'crates.io'." });
     return;
   }
   if (typeof name !== "string" || name.length === 0 || name.length > 214) {

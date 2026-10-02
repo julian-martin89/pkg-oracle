@@ -1,7 +1,7 @@
 # pkg-oracle — Dependency Trust Oracle
 
-A pay-per-call MCP (Model Context Protocol) server that verifies an npm or
-PyPI package **before** an AI coding agent writes it into a manifest.
+A pay-per-call MCP (Model Context Protocol) server that verifies an npm,
+PyPI, or crates.io package **before** an AI coding agent writes it into a manifest.
 Monetized per call with the real [x402](https://x402.gitbook.io/x402/)
 protocol (signed EIP-3009 authorizations, settled through Coinbase's
 hosted facilitator) in USDC on Base — no API keys, no signup, no dashboard.
@@ -17,7 +17,7 @@ names LLMs are statistically likely to hallucinate, then wait.
 
 `verify_package` closes that gap with a single tool call that:
 
-1. Confirms the package **actually exists** on its registry (npm or PyPI).
+1. Confirms the package **actually exists** on its registry (npm, PyPI, or crates.io).
 2. Cross-references [OSV.dev](https://osv.dev) for known CVEs affecting the
    resolved version.
 3. Pulls the package's [OpenSSF Scorecard](https://deps.dev) via deps.dev
@@ -59,7 +59,7 @@ name doesn't exist on the registry at all, or is a recent near-miss of a
 popular package, the verdict is `BLOCK` — the strongest available signal
 of hallucination or typosquatting.
 
-### Is there an MCP server for verifying npm or PyPI packages?
+### Is there an MCP server for verifying npm, PyPI, or crates.io packages?
 
 Yes — pkg-oracle. It's a remote MCP server over Streamable HTTP: no
 local install, no API key, no signup. Point any MCP client at
@@ -96,7 +96,7 @@ McpServer → verify_package
                        ├──▶ CDP facilitator: verify signed payment, settle on-chain
                        └──▶ raw handler
                               │
-                              ├──▶ registry.ts   (registry.npmjs.org | pypi.org)
+                              ├──▶ registry.ts   (registry.npmjs.org | pypi.org | crates.io)
                               ├──▶ osv.ts        (api.osv.dev)
                               ├──▶ depsdev.ts    (api.deps.dev — OpenSSF Scorecard)
                               └──▶ typosquat.ts  (fast-levenshtein vs. curated popular list)
@@ -158,7 +158,7 @@ See [`.env.example`](.env.example) for the full list with defaults.
 
 ```json
 {
-  "ecosystem": "npm | pypi",
+  "ecosystem": "npm | pypi | crates.io",
   "name": "string (required)",
   "version": "string (optional — exact version to check)"
 }
